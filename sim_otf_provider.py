@@ -85,10 +85,8 @@ def otf2psf(otf):
     Returns:
     numpy.ndarray: The Point Spread Function.
     """
-    # 使用 ifftn 进行多维傅里叶逆变换
     psf = ifftn(otf)
 
-    # 将结果转换为实数部分，并进行中心化
     psf = np.abs(fftshift(psf))
 
     return psf
