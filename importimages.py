@@ -1,7 +1,9 @@
 import numpy as np
 
 def fade_border_cos(img, px):
-    h, w = img.shape
+    # h, w = img.shape
+    h = img.shape[0]
+    w = img.shape[1]
     fac = 1 / px * np.pi / 2
     dat = np.copy(img)
     
@@ -20,11 +22,19 @@ def fade_border_cos(img, px):
 def import_images(images):
     N = images.shape[2]
     L = images.shape[0]
+    error_num = images.shape[3]
     for i in range(N):
-        cur_img = images[:, :, i]
+        cur_img = images[:, :, i, :]
         if L > 256:
             cur_img = fade_border_cos(cur_img, 10)
         else:
             cur_img = fade_border_cos(cur_img, 0)
-        images[:, :, i] = cur_img
+        images[:, :, i, :] = cur_img
+    # for i in range(N):
+    #     cur_img = images[:, :, i]
+    #     if L > 256:
+    #         cur_img = fade_border_cos(cur_img, 10)
+    #     else:
+    #         cur_img = fade_border_cos(cur_img, 0)
+    #     images[:, :, i] = cur_img
     return images
