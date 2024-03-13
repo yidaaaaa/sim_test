@@ -119,4 +119,13 @@ fftWF2 = np.zeros((2*NPixel, 2*NPixel, size_num))
 for error_num in range(size_num):
     fftWF2[NPixel/2 +1:3*NPixel/2, NPixel/2 +1:3*NPixel/2, error_num] = fftshift(fft2(WF[:, :, error_num]))
 
-WF2 = 
+# matlab code: WF2 = real(ifft2(fftshift(fftWF2)));
+# WF2 = importImages(WF2);
+WF2 = np.zeros((NPixel, NPixel, size_num))
+for error_num in range(size_num):
+    WF2[:, :, error_num] = np.abs(ifft2(fftshift(fftWF2[:, :, error_num])))
+
+WF2 = import_images(WF2)
+
+
+

@@ -38,3 +38,17 @@ def import_images(images):
     #         cur_img = fade_border_cos(cur_img, 0)
     #     images[:, :, i] = cur_img
     return images
+
+
+def import_images1(images):
+    N = images.shape[2]
+    L = images.shape[0]
+
+    for i in range(N):
+        cur_img = images[:, :, i]
+        if L > 256:
+            cur_img = fade_border_cos(cur_img, 10)
+        else:
+            cur_img = fade_border_cos(cur_img, 0)
+        images[:, :, i] = cur_img
+    return images

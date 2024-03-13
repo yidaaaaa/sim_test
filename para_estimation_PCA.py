@@ -17,6 +17,8 @@ divideByOtf = True
 
 start_time = time.time()
 
+
+
 for angle_num in range(1, param['nrDirs'] + 1):
     param['fac'] = [1, 1]
     param['phaOff'] = 0
