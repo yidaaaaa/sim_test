@@ -7,6 +7,7 @@ import imageio
 from sim_otf_provider import sim_otf_provider, otf2psf
 from importimages import import_images, import_images1
 from skimage.restoration import richardson_lucy
+from getotfAtt import get_otf_att
 
 size_num = 50
 pca_x = np.zeros((3, size_num))
@@ -46,9 +47,9 @@ for i, frame in enumerate(frames):
 # plt.imshow(frames[0], cmap='gray')
 # plt.title('Original Frame')
 
-# # 显示经过添加噪声后的第一帧图像
+# 显示经过添加噪声后的第一帧图像
 # plt.subplot(1, 2, 2)
-# plt.imshow(Iraw[:, :, 0, 30], cmap='gray') 
+# plt.imshow(Iraw[:, :, 0], cmap='gray') 
 # plt.title('Noise Added Frame')
 
 # plt.show()
@@ -91,6 +92,8 @@ for i in range(N):
 #         IIraw[:, :, (i - 1) * param['nrDirs'] + j, :] = Iraw[:, :, (i - 1) * param['nrDirs'] + j, :] / param['nrPhases']
 
 WF = np.zeros((NPixel, NPixel))
+# [x,y] = meshgrid(1:NPixel,1:NPixel);  
+x, y = np.meshgrid(np.arange(1, NPixel+1), np.arange(1, NPixel+1))
 Tdeconv = np.zeros((NPixel, NPixel))
 WFdeconv = np.zeros((NPixel, NPixel, param['nrDirs']))
 WFdeconvFFT = np.zeros((NPixel, NPixel, param['nrDirs']))
@@ -103,8 +106,7 @@ for i in range(param['nrDirs']):
     WFdeconv[:, :, i] = Tdeconv[:, :] / param['nrPhases']
     WFdeconvFFT[:, :, i] = fft2(WFdeconv[:, :, i])
 
-# WF = WF / N
-# WF = np.abs(fft2(WF))
+
 # for error_num in range(size_num):
 # WF[:, :] = np.abs(fft2(WF[:, :])) / N
 WF = WF / N
@@ -113,7 +115,7 @@ WF = import_images1(WF)
 # matlab code: figure(),imshow(WF,[]),colormap hot;
 
 plt.figure()
-plt.imshow(WF[:, :, 0], cmap='hot')
+plt.imshow(WF[:, :], cmap='hot')
 plt.show()
     
 
@@ -129,8 +131,16 @@ WF2[:, :] = np.abs(ifft2(fftshift(fftWF2)))
 WF2 = import_images1(WF2)
 
 
-
-
+Center = [NPixel/2 + 1, NPixel/2 + 1]
+#R=sqrt((y-Center(1)).^2+(x-Center(2)).^2);                                  % frequency radius
+#Mask_2NA=double(R<=1.0*(param.cutoff/param.cyclesPerMicron+1));             % Mask 2NA
+#NotchFilter0=getotfAtt(NPixel,param.OtfProvider.cyclesPerMicron,0.5...
+#    *param.cutoff,0,0);                                                     % Filter for zero frequency
+#NotchFilter=NotchFilter0.*Mask_2NA;      
+R = np.sqrt((x - Center[0])**2 + (y - Center[1])**2)
+Mask_2NA = np.double(R <= 1.0 * (param['cutoff'] / param['cyclesPerMicron'] + 1))
+NotchFilter0 = get_otf_att(NPixel, param['OtfProvider']['cyclesPerMicron'], 0.5 * param['cutoff'], 0, 0)
+NotchFilter = NotchFilter0 * Mask_2NA
 
 
 
@@ -157,6 +167,7 @@ overlap = dist
 divideByOtf = True
 
 start_time = time.time()
+K0 = np.zeros(param['nrDirs'])
 
 
 
@@ -164,14 +175,14 @@ for angle_num in range(1, param['nrDirs'] + 1):
     param['fac'] = [1, 1]
     param['phaOff'] = 0
     spectrum = separate_bands(IIrawFFT[:, :, (angle_num - 1) * param['nrPhases']:angle_num * param['nrPhases']], param['phaOff'], param['nrBands'], param['fac'])
-    temp = spectrum[:, :, 1] * NotchFilter  # NotchFilter需要定义
+    temp = spectrum[:, :, 1] * NotchFilter  
     yPos, xPos = np.unravel_index(np.argmax(temp), temp.shape)
 
     peak = {'xPos': xPos + 1, 'yPos': yPos + 1}
 
     for pca_size in range(1, PCA_num + 1):
         if pca_size == 1:
-            kx = (peak['xPos'] - Center[1])  # Center需要定义
+            kx = (peak['xPos'] - Center[1]) 
             ky = (peak['yPos'] - Center[0])
             old_kx = kx
             old_ky = ky
@@ -181,7 +192,7 @@ for angle_num in range(1, param['nrDirs'] + 1):
 
         temp = Nfourier_shift(place_freq(spectrum[:, :, 1]), -(2 - 1) * old_kx, -(2 - 1) * old_ky)
         MASK = np.ones(temp.shape)
-        NPixel = temp.shape[0] // 2  # Assuming square images for simplicity
+        NPixel = temp.shape[0] // 2 
         MASK[NPixel-mask_size:NPixel+mask_size+1, NPixel-mask_size:NPixel+mask_size+1] = 0
         temp[MASK == 1] = 0
         ROI = temp[NPixel-filter_size:NPixel+filter_size+1, NPixel-filter_size:NPixel+filter_size+1]
@@ -202,4 +213,20 @@ for angle_num in range(1, param['nrDirs'] + 1):
 
         K0[angle_num-1] = np.sqrt(old_kx**2 + old_ky**2)
 
+# matlab code:
+# siz=size(Iraw(:,:,1));
+# param.attStrength=0.9;
+# param.a=1;                
+# param.attFWHM=1.0;
+# param.OtfProvider=SimOtfProvider(param,param.NA,param.lambda,param.a);
+# sub_optimization=1;
         
+size = Iraw[:, :, 0].shape
+param['attStrength'] = 0.9
+param['a'] = 1
+param['attFWHM'] = 1.0
+param['OtfProvider'] = sim_otf_provider(param, param['NA'], param['lambda'], param['a'])
+sub_optimization = 1
+
+# COR
+import numpy as np

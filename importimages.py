@@ -41,14 +41,23 @@ def import_images(images):
 
 
 def import_images1(images):
-    N = images.shape[2]
+    if len(images.shape) == 3:
+        N = images.shape[2]
+    elif len(images.shape) == 2:
+        N = 1
     L = images.shape[0]
 
     for i in range(N):
-        cur_img = images[:, :, i]
+        if len(images.shape) == 3:
+            cur_img = images[:, :, i]
+        elif len(images.shape) == 2:
+            cur_img = images
         if L > 256:
             cur_img = fade_border_cos(cur_img, 10)
         else:
             cur_img = fade_border_cos(cur_img, 0)
-        images[:, :, i] = cur_img
+        if len(images.shape) == 3:
+            images[:, :, i] = cur_img
+        elif len(images.shape) == 2:
+            images = cur_img
     return images
